@@ -18,6 +18,7 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -47,6 +48,8 @@ public class MainActivity extends AppCompatActivity {
 
     private Button retryButton;
 
+    private SwipeRefreshLayout swipeRefreshLayout;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -59,6 +62,9 @@ public class MainActivity extends AppCompatActivity {
                 findViewById(
                         R.id.transferRecyclerView
                 );
+
+        swipeRefreshLayout =
+                findViewById(R.id.swipeRefreshLayout);
 
         loadingContainer =
                 findViewById(
@@ -89,6 +95,9 @@ public class MainActivity extends AppCompatActivity {
                 new TransferAdapter(transfers);
 
         recyclerView.setAdapter(adapter);
+        swipeRefreshLayout.setOnRefreshListener(
+                this::loadTransfers
+        );
 
 
         retryButton.setOnClickListener(
@@ -149,7 +158,7 @@ public class MainActivity extends AppCompatActivity {
 
         errorContainer.setVisibility(View.GONE);
 
-        recyclerView.setVisibility(View.GONE);
+        swipeRefreshLayout.setVisibility(View.GONE);
     }
 
     private void showContent() {
@@ -158,14 +167,14 @@ public class MainActivity extends AppCompatActivity {
 
         errorContainer.setVisibility(View.GONE);
 
-        recyclerView.setVisibility(View.VISIBLE);
+        swipeRefreshLayout.setVisibility(View.VISIBLE);
     }
 
     private void showError(String message) {
 
         loadingContainer.setVisibility(View.GONE);
 
-        recyclerView.setVisibility(View.GONE);
+        swipeRefreshLayout.setVisibility(View.GONE);
 
         errorContainer.setVisibility(View.VISIBLE);
 
@@ -174,7 +183,9 @@ public class MainActivity extends AppCompatActivity {
 
     private void loadTransfers() {
 
-        showLoading();
+        if (transfers.isEmpty()) {
+            showLoading();
+        }
 
         TransferApi transferApi =
                 ApiClient.getTransferApi();
@@ -212,9 +223,13 @@ public class MainActivity extends AppCompatActivity {
 
                     adapter.notifyDataSetChanged();
 
+                    swipeRefreshLayout.setRefreshing(false);
+
                     showContent();
 
                 } else {
+
+                    swipeRefreshLayout.setRefreshing(false);
 
                     showError(
                             "Server error: "
@@ -228,6 +243,7 @@ public class MainActivity extends AppCompatActivity {
                     Call<List<Transfer>> call,
                     Throwable throwable
             ) {
+                swipeRefreshLayout.setRefreshing(false);
 
                 showError(
                         "Could not load transfers.\n\n"
