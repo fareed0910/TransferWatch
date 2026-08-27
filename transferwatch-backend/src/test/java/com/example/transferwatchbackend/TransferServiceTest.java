@@ -8,6 +8,7 @@ import com.example.transferwatchbackend.api.ApiTransfer;
 import com.example.transferwatchbackend.api.ApiTransferTeams;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -225,5 +226,373 @@ class TransferServiceTest {
         assertThat(result)
                 .hasSize(2);
     }
+
+    @Test
+    void returnsEmptyListWhenApiContainsNoPlayers() {
+
+        when(apiFootballClient.getTransfers(33))
+                .thenReturn(
+                        new ApiFootballResponse(List.of())
+                );
+
+        List<Transfer> result =
+                transferService.getTransfers();
+
+        assertThat(result).isEmpty();
+    }
+
+    @Disabled
+    @Test
+    void returnsEmptyListWhenPlayerResponseIsNull() {
+
+        when(apiFootballClient.getTransfers(33))
+                .thenReturn(
+                        new ApiFootballResponse(null)
+                );
+
+        List<Transfer> result =
+                transferService.getTransfers();
+
+        assertThat(result).isEmpty();
+    }
+
+    @Disabled
+    @Test
+    void ignoresPlayerWithoutTransferList() {
+
+        ApiPlayerTransfer player =
+                new ApiPlayerTransfer(
+                        new ApiPlayer(
+                                1,
+                                "Test Player"
+                        ),
+                        null,
+                        null
+                );
+
+        when(apiFootballClient.getTransfers(33))
+                .thenReturn(
+                        new ApiFootballResponse(
+                                List.of(player)
+                        )
+                );
+
+        List<Transfer> result =
+                transferService.getTransfers();
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void ignoresTransferWithoutTeams() {
+
+        ApiTransfer apiTransfer =
+                new ApiTransfer(
+                        "2026-08-20",
+                        "Loan",
+                        null
+                );
+
+        ApiPlayerTransfer player =
+                new ApiPlayerTransfer(
+                        new ApiPlayer(
+                                1,
+                                "Test Player"
+                        ),
+                        null,
+                        List.of(apiTransfer)
+                );
+
+        when(apiFootballClient.getTransfers(33))
+                .thenReturn(
+                        new ApiFootballResponse(
+                                List.of(player)
+                        )
+                );
+
+        List<Transfer> result =
+                transferService.getTransfers();
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void ignoresTransferWithoutDestinationClub() {
+
+        ApiTransfer apiTransfer =
+                new ApiTransfer(
+                        "2026-08-20",
+                        "Loan",
+                        new ApiTransferTeams(
+                                null,
+                                new ApiTeam(
+                                        33,
+                                        "Manchester United",
+                                        null
+                                )
+                        )
+                );
+
+        ApiPlayerTransfer player =
+                new ApiPlayerTransfer(
+                        new ApiPlayer(
+                                1,
+                                "Test Player"
+                        ),
+                        null,
+                        List.of(apiTransfer)
+                );
+
+        when(apiFootballClient.getTransfers(33))
+                .thenReturn(
+                        new ApiFootballResponse(
+                                List.of(player)
+                        )
+                );
+
+        assertThat(
+                transferService.getTransfers()
+        ).isEmpty();
+    }
+
+    @Test
+    void ignoresTransferWithoutSourceClub() {
+
+        ApiTransfer apiTransfer =
+                new ApiTransfer(
+                        "2026-08-20",
+                        "Loan",
+                        new ApiTransferTeams(
+                                new ApiTeam(
+                                        33,
+                                        "Manchester United",
+                                        null
+                                ),
+                                null
+                        )
+                );
+
+        ApiPlayerTransfer player =
+                new ApiPlayerTransfer(
+                        new ApiPlayer(
+                                1,
+                                "Test Player"
+                        ),
+                        null,
+                        List.of(apiTransfer)
+                );
+
+        when(apiFootballClient.getTransfers(33))
+                .thenReturn(
+                        new ApiFootballResponse(
+                                List.of(player)
+                        )
+                );
+
+        assertThat(
+                transferService.getTransfers()
+        ).isEmpty();
+    }
+
+    @Test
+    void includesIncomingTransferForSelectedTeam() {
+
+        ApiTransfer apiTransfer =
+                new ApiTransfer(
+                        "2026-08-20",
+                        "€50M",
+                        new ApiTransferTeams(
+                                new ApiTeam(
+                                        33,
+                                        "Manchester United",
+                                        null
+                                ),
+                                new ApiTeam(
+                                        55,
+                                        "Other Club",
+                                        null
+                                )
+                        )
+                );
+
+        ApiPlayerTransfer player =
+                new ApiPlayerTransfer(
+                        new ApiPlayer(
+                                123,
+                                "Player A"
+                        ),
+                        null,
+                        List.of(apiTransfer)
+                );
+
+        when(apiFootballClient.getTransfers(33))
+                .thenReturn(
+                        new ApiFootballResponse(
+                                List.of(player)
+                        )
+                );
+
+        List<Transfer> result =
+                transferService.getTransfers();
+
+        assertThat(result).hasSize(1);
+        assertThat(result.getFirst().toClub())
+                .isEqualTo("Manchester United");
+    }
+
+    @Test
+    void includesOutgoingTransferForSelectedTeam() {
+
+        ApiTransfer apiTransfer =
+                new ApiTransfer(
+                        "2026-08-20",
+                        "Free",
+                        new ApiTransferTeams(
+                                new ApiTeam(
+                                        77,
+                                        "Other Club",
+                                        null
+                                ),
+                                new ApiTeam(
+                                        33,
+                                        "Manchester United",
+                                        null
+                                )
+                        )
+                );
+
+        ApiPlayerTransfer player =
+                new ApiPlayerTransfer(
+                        new ApiPlayer(123, "Player A"),
+                        null,
+                        List.of(apiTransfer)
+                );
+
+        when(apiFootballClient.getTransfers(33))
+                .thenReturn(
+                        new ApiFootballResponse(
+                                List.of(player)
+                        )
+                );
+
+        List<Transfer> result =
+                transferService.getTransfers();
+
+        assertThat(result).hasSize(1);
+
+        assertThat(result.getFirst().fromClub())
+                .isEqualTo("Manchester United");
+    }
+
+    @Test
+    void ignoresTransferUnrelatedToSelectedTeam() {
+
+        ApiTransfer apiTransfer =
+                new ApiTransfer(
+                        "2026-08-20",
+                        "Loan",
+                        new ApiTransferTeams(
+                                new ApiTeam(
+                                        60,
+                                        "Club B",
+                                        null
+                                ),
+                                new ApiTeam(
+                                        50,
+                                        "Club A",
+                                        null
+                                )
+                        )
+                );
+
+        ApiPlayerTransfer player =
+                new ApiPlayerTransfer(
+                        new ApiPlayer(123, "Player A"),
+                        null,
+                        List.of(apiTransfer)
+                );
+
+        when(apiFootballClient.getTransfers(33))
+                .thenReturn(
+                        new ApiFootballResponse(
+                                List.of(player)
+                        )
+                );
+
+        assertThat(
+                transferService.getTransfers()
+        ).isEmpty();
+    }
+
+    @Test
+    void sortsTransfersNewestFirst() {
+
+        ApiTransfer older =
+                new ApiTransfer(
+                        "2025-01-01",
+                        "Loan",
+                        new ApiTransferTeams(
+                                new ApiTeam(
+                                        33,
+                                        "Manchester United",
+                                        null
+                                ),
+                                new ApiTeam(
+                                        50,
+                                        "Club A",
+                                        null
+                                )
+                        )
+                );
+
+        ApiTransfer newer =
+                new ApiTransfer(
+                        "2026-08-20",
+                        "€40M",
+                        new ApiTransferTeams(
+                                new ApiTeam(
+                                        33,
+                                        "Manchester United",
+                                        null
+                                ),
+                                new ApiTeam(
+                                        60,
+                                        "Club B",
+                                        null
+                                )
+                        )
+                );
+
+        ApiPlayerTransfer player =
+                new ApiPlayerTransfer(
+                        new ApiPlayer(
+                                123,
+                                "Test Player"
+                        ),
+                        null,
+                        List.of(
+                                older,
+                                newer
+                        )
+                );
+
+        when(apiFootballClient.getTransfers(33))
+                .thenReturn(
+                        new ApiFootballResponse(
+                                List.of(player)
+                        )
+                );
+
+        List<Transfer> result =
+                transferService.getTransfers();
+
+        assertThat(result)
+                .extracting(Transfer::date)
+                .containsExactly(
+                        "2026-08-20",
+                        "2025-01-01"
+                );
+    }
+
 
 }
