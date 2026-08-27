@@ -3,6 +3,9 @@ package com.example.transferwatch;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -27,35 +30,100 @@ public class MainActivity extends AppCompatActivity {
 
     private static final int LOCAL_NETWORK_PERMISSION_REQUEST = 100;
 
-    /*
-     * Using the String directly makes this work even if Android Studio
-     * does not recognise Manifest.permission.ACCESS_LOCAL_NETWORK yet.
-     */
     private static final String LOCAL_NETWORK_PERMISSION =
             "android.permission.ACCESS_LOCAL_NETWORK";
+
+    private final List<Transfer> transfers =
+            new ArrayList<>();
+
+    private TransferAdapter adapter;
+
+    private RecyclerView recyclerView;
+
+    private View loadingContainer;
+    private View errorContainer;
+
+    private TextView errorText;
+
+    private Button retryButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         EdgeToEdge.enable(this);
+
         setContentView(R.layout.activity_main);
 
-        List<Transfer> transfers = new ArrayList<>();
+        recyclerView =
+                findViewById(
+                        R.id.transferRecyclerView
+                );
 
-        RecyclerView recyclerView =
-                findViewById(R.id.transferRecyclerView);
+        loadingContainer =
+                findViewById(
+                        R.id.loadingContainer
+                );
+
+        errorContainer =
+                findViewById(
+                        R.id.errorContainer
+                );
+
+        errorText =
+                findViewById(
+                        R.id.errorText
+                );
+
+        retryButton =
+                findViewById(
+                        R.id.retryButton
+                );
+
 
         recyclerView.setLayoutManager(
                 new LinearLayoutManager(this)
         );
 
-        TransferAdapter adapter =
+        adapter =
                 new TransferAdapter(transfers);
 
         recyclerView.setAdapter(adapter);
 
 
+        retryButton.setOnClickListener(
+                view ->
+                        loadTransfersWithPermissionCheck()
+        );
+
+
+        loadTransfersWithPermissionCheck();
+
+
+        ViewCompat.setOnApplyWindowInsetsListener(
+                findViewById(R.id.main),
+                (v, insets) -> {
+
+                    Insets systemBars =
+                            insets.getInsets(
+                                    WindowInsetsCompat
+                                            .Type
+                                            .systemBars()
+                            );
+
+                    v.setPadding(
+                            systemBars.left,
+                            systemBars.top,
+                            systemBars.right,
+                            systemBars.bottom
+                    );
+
+                    return insets;
+                }
+        );
+    }
+
+    private void loadTransfersWithPermissionCheck() {
         // Android 17 / API 37 local-network permission
         if (Build.VERSION.SDK_INT >= 37
                 && ContextCompat.checkSelfPermission(
@@ -71,36 +139,42 @@ public class MainActivity extends AppCompatActivity {
 
         } else {
 
-            loadTransfers(transfers, adapter);
+            loadTransfers();
         }
-
-
-        ViewCompat.setOnApplyWindowInsetsListener(
-                findViewById(R.id.main),
-                (v, insets) -> {
-
-                    Insets systemBars =
-                            insets.getInsets(
-                                    WindowInsetsCompat.Type.systemBars()
-                            );
-
-                    v.setPadding(
-                            systemBars.left,
-                            systemBars.top,
-                            systemBars.right,
-                            systemBars.bottom
-                    );
-
-                    return insets;
-                }
-        );
     }
 
+    private void showLoading() {
 
-    private void loadTransfers(
-            List<Transfer> transfers,
-            TransferAdapter adapter
-    ) {
+        loadingContainer.setVisibility(View.VISIBLE);
+
+        errorContainer.setVisibility(View.GONE);
+
+        recyclerView.setVisibility(View.GONE);
+    }
+
+    private void showContent() {
+
+        loadingContainer.setVisibility(View.GONE);
+
+        errorContainer.setVisibility(View.GONE);
+
+        recyclerView.setVisibility(View.VISIBLE);
+    }
+
+    private void showError(String message) {
+
+        loadingContainer.setVisibility(View.GONE);
+
+        recyclerView.setVisibility(View.GONE);
+
+        errorContainer.setVisibility(View.VISIBLE);
+
+        errorText.setText(message);
+    }
+
+    private void loadTransfers() {
+
+        showLoading();
 
         TransferApi transferApi =
                 ApiClient.getTransferApi();
@@ -119,26 +193,22 @@ public class MainActivity extends AppCompatActivity {
                 if (response.isSuccessful()
                         && response.body() != null) {
 
-                    Toast.makeText(
-                            MainActivity.this,
-                            "Received "
-                                    + response.body().size()
-                                    + " transfers",
-                            Toast.LENGTH_LONG
-                    ).show();
-
                     transfers.clear();
-                    transfers.addAll(response.body());
+
+                    transfers.addAll(
+                            response.body()
+                    );
 
                     adapter.notifyDataSetChanged();
 
+                    showContent();
+
                 } else {
 
-                    Toast.makeText(
-                            MainActivity.this,
-                            "HTTP error: " + response.code(),
-                            Toast.LENGTH_LONG
-                    ).show();
+                    showError(
+                            "Server error: "
+                                    + response.code()
+                    );
                 }
             }
 
@@ -148,11 +218,11 @@ public class MainActivity extends AppCompatActivity {
                     Throwable throwable
             ) {
 
-                Toast.makeText(
-                        MainActivity.this,
-                        "Request failed: " + throwable,
-                        Toast.LENGTH_LONG
-                ).show();
+                showError(
+                        "Could not load transfers.\n\n"
+                                + throwable.getClass()
+                                .getSimpleName()
+                );
 
                 throwable.printStackTrace();
             }
@@ -172,15 +242,22 @@ public class MainActivity extends AppCompatActivity {
                 grantResults
         );
 
-        if (requestCode == LOCAL_NETWORK_PERMISSION_REQUEST
-                && grantResults.length > 0
-                && grantResults[0]
-                == PackageManager.PERMISSION_GRANTED) {
+        if (requestCode
+                == LOCAL_NETWORK_PERMISSION_REQUEST) {
 
-            // Restart MainActivity.
-            // On the next onCreate(), the permission check succeeds
-            // and loadTransfers() runs.
-            recreate();
+            if (grantResults.length > 0
+                    && grantResults[0]
+                    == PackageManager.PERMISSION_GRANTED) {
+
+                loadTransfers();
+
+            } else {
+
+                showError(
+                        "Local network access is required "
+                                + "to connect to the development server."
+                );
+            }
         }
     }
 }
