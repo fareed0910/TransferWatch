@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F5F5F5"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <!-- App title -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="TransferWatch"
+            android:textSize="30sp"
+            android:textStyle="bold"
+            android:textColor="#111111"
+            android:layout_marginTop="16dp" />
+
+        <!-- Subtitle -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Latest football transfers"
+            android:textSize="16sp"
+            android:textColor="#666666"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="24dp" />
+
+    </LinearLayout>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/transferRecyclerView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:clipToPadding="false" />
+
+</LinearLayout>

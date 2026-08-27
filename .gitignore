@@ -1,0 +1,22 @@
+# IntelliJ / Android Studio
+.idea/
+*.iml
+
+# Gradle
+.gradle/
+**/build/
+
+# Android
+android/local.properties
+*.apk
+*.aab
+
+# Java
+*.class
+
+# macOS
+.DS_Store
+
+# Secrets
+.env
+application-local.properties
