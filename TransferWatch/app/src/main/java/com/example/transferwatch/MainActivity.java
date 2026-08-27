@@ -190,8 +190,19 @@ public class MainActivity extends AppCompatActivity {
                     Response<List<Transfer>> response
             ) {
 
+
+
                 if (response.isSuccessful()
                         && response.body() != null) {
+
+                    if (response.body().isEmpty()) {
+
+                        showError(
+                                "No transfers are currently available."
+                        );
+
+                        return;
+                    }
 
                     transfers.clear();
 
