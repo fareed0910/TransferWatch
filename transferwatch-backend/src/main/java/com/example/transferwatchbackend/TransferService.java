@@ -25,7 +25,7 @@ public class TransferService {
 
     public List<Transfer> getTransfers() {
 
-        int teamId = 42;
+        int teamId = 33;
 
         ApiFootballResponse response =
                 apiFootballClient
