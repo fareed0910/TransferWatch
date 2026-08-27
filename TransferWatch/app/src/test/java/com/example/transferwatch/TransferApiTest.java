@@ -1,6 +1,9 @@
 package com.example.transferwatch;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import com.google.gson.Gson;
@@ -237,5 +240,129 @@ public class TransferApiTest {
                 duration < 1000
         );
     }
+    @Test
+    public void parsesEmptyTransferList()
+            throws IOException {
 
+        mockWebServer.enqueue(
+                new MockResponse()
+                        .setResponseCode(200)
+                        .setBody("[]")
+                        .addHeader(
+                                "Content-Type",
+                                "application/json"
+                        )
+        );
+
+        Response<List<Transfer>> response =
+                transferApi
+                        .getTransfers()
+                        .execute();
+
+        assertTrue(response.isSuccessful());
+        assertNotNull(response.body());
+        assertTrue(response.body().isEmpty());
+    }
+
+    @Test
+    public void parsesMultipleTransfers()
+            throws IOException {
+
+        String json = """
+            [
+              {
+                "playerName": "Player A",
+                "fromClub": "Club A",
+                "toClub": "Club B",
+                "transferType": "Loan",
+                "date": "2026-08-20"
+              },
+              {
+                "playerName": "Player B",
+                "fromClub": "Club C",
+                "toClub": "Club D",
+                "transferType": "Free",
+                "date": "2026-08-19"
+              }
+            ]
+            """;
+
+        mockWebServer.enqueue(
+                new MockResponse()
+                        .setResponseCode(200)
+                        .setBody(json)
+                        .addHeader(
+                                "Content-Type",
+                                "application/json"
+                        )
+        );
+
+        Response<List<Transfer>> response =
+                transferApi
+                        .getTransfers()
+                        .execute();
+
+        assertEquals(
+                2,
+                response.body().size()
+        );
+    }
+
+    @Test
+    public void parsesTransferWithNullType()
+            throws IOException {
+
+        String json = """
+            [
+              {
+                "playerName": "Player A",
+                "fromClub": "Club A",
+                "toClub": "Club B",
+                "transferType": null,
+                "date": "2026-08-20"
+              }
+            ]
+            """;
+
+        mockWebServer.enqueue(
+                new MockResponse()
+                        .setResponseCode(200)
+                        .setBody(json)
+                        .addHeader(
+                                "Content-Type",
+                                "application/json"
+                        )
+        );
+
+        Response<List<Transfer>> response =
+                transferApi
+                        .getTransfers()
+                        .execute();
+
+        assertTrue(response.isSuccessful());
+
+        assertNull(
+                response.body()
+                        .get(0)
+                        .transferType()
+        );
+    }
+
+    @Test
+    public void handlesRateLimitResponse()
+            throws IOException {
+
+        mockWebServer.enqueue(
+                new MockResponse()
+                        .setResponseCode(429)
+        );
+
+        Response<List<Transfer>> response =
+                transferApi
+                        .getTransfers()
+                        .execute();
+
+        assertFalse(response.isSuccessful());
+        assertEquals(429, response.code());
+    }
 }
