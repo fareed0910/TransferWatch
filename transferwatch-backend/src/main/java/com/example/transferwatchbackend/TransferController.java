@@ -11,6 +11,7 @@ import java.util.List;
 public class TransferController {
 
     private final TransferService transferService;
+    private static final int DEFAULT_TEAM_ID = 33;
 
     public TransferController(
             TransferService transferService
@@ -22,6 +23,6 @@ public class TransferController {
     @GetMapping
     public List<Transfer> getTransfers() {
 
-        return transferService.getTransfers();
+        return transferService.getTransfers(DEFAULT_TEAM_ID);
     }
 }

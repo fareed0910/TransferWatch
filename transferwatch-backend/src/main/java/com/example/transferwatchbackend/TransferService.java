@@ -23,69 +23,77 @@ public class TransferService {
                 apiFootballClient;
     }
 
-    public List<Transfer> getTransfers() {
-
-        int teamId = 33;
-
-        ApiFootballResponse response =
-                apiFootballClient
-                        .getTransfers(teamId);
-        System.out.println(
-                "Players returned by API: " + response.response().size()
-        );
+    public List<Transfer> getTransfers(int teamId) {
+        {
 
 
-        List<Transfer> transfers =
-                new ArrayList<>();
+            ApiFootballResponse response =
+                    apiFootballClient
+                            .getTransfers(teamId);
 
-        for (ApiPlayerTransfer playerEntry
-                : response.response()) {
-
-            for (ApiTransfer apiTransfer
-                    : playerEntry.transfers()) {
-
-                if (apiTransfer.teams() == null
-                        || apiTransfer.teams().in() == null
-                        || apiTransfer.teams().out() == null) {
-                    continue;
-                }
-
-
-                /*
-                 * Defensive check:
-                 * only keep transfers actually involving
-                 * Manchester United.
-                 */
-                if (!Objects.equals(
-                        apiTransfer.teams().in().id(),
-                        teamId
-                )
-                        && !Objects.equals(
-                        apiTransfer.teams().out().id(),
-                        teamId
-                )) {
-
-                    continue;
-                }
-                Transfer transfer =
-                        new Transfer(
-                                playerEntry.player().name(),
-                                apiTransfer.teams().out().name(),
-                                apiTransfer.teams().in().name(),
-                                apiTransfer.type(),
-                                apiTransfer.date()
-                        );
-
-                transfers.add(transfer);
+            if (response == null || response.response() == null) {
+                return List.of();
             }
-        }
 
-        transfers.sort(
-                Comparator.comparing(
-                        Transfer::date
-                ).reversed()
-        );
-        System.out.println("Transfers after Mapping: " + transfers.size());
-        return transfers;
+            System.out.println(
+                    "Players returned by API: " + response.response().size()
+            );
+
+
+            List<Transfer> transfers =
+                    new ArrayList<>();
+
+            for (ApiPlayerTransfer playerEntry
+                    : response.response()) {
+                if (playerEntry == null
+                        || playerEntry.transfers() == null) {
+                    continue;
+                }
+                for (ApiTransfer apiTransfer
+                        : playerEntry.transfers()) {
+
+                    if (apiTransfer.teams() == null
+                            || apiTransfer.teams().in() == null
+                            || apiTransfer.teams().out() == null) {
+                        continue;
+                    }
+
+
+                    /*
+                     * Defensive check:
+                     * only keep transfers actually involving
+                     */
+                    if (!Objects.equals(
+                            apiTransfer.teams().in().id(),
+                            teamId
+                    )
+                            && !Objects.equals(
+                            apiTransfer.teams().out().id(),
+                            teamId
+                    )) {
+
+                        continue;
+                    }
+                    Transfer transfer =
+                            new Transfer(
+                                    playerEntry.player().name(),
+                                    apiTransfer.teams().out().name(),
+                                    apiTransfer.teams().in().name(),
+                                    apiTransfer.type(),
+                                    apiTransfer.date()
+                            );
+
+                    transfers.add(transfer);
+                }
+            }
+
+            transfers.sort(
+                    Comparator.comparing(
+                            Transfer::date
+                    ).reversed()
+            );
+            System.out.println("Transfers after Mapping: " + transfers.size());
+            return transfers;
+        }
     }
 }

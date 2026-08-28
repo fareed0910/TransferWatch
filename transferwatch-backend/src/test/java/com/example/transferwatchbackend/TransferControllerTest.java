@@ -40,7 +40,7 @@ class TransferControllerTest {
                 );
 
         when(
-                transferService.getTransfers()
+                transferService.getTransfers(33)
         ).thenReturn(expected);
 
 
@@ -52,6 +52,6 @@ class TransferControllerTest {
                 .isEqualTo(expected);
 
         verify(transferService)
-                .getTransfers();
+                .getTransfers(33);
     }
 }

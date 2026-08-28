@@ -14,8 +14,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 class TransferServiceTest {
 
@@ -80,7 +79,7 @@ class TransferServiceTest {
 
 
         List<Transfer> result =
-                transferService.getTransfers();
+                transferService.getTransfers(33);
 
 
         assertThat(result).hasSize(1);
@@ -151,7 +150,7 @@ class TransferServiceTest {
 
 
         List<Transfer> result =
-                transferService.getTransfers();
+                transferService.getTransfers(33);
 
 
         assertThat(result)
@@ -220,7 +219,7 @@ class TransferServiceTest {
 
 
         List<Transfer> result =
-                transferService.getTransfers();
+                transferService.getTransfers(33);
 
 
         assertThat(result)
@@ -236,12 +235,11 @@ class TransferServiceTest {
                 );
 
         List<Transfer> result =
-                transferService.getTransfers();
+                transferService.getTransfers(33);
 
         assertThat(result).isEmpty();
     }
 
-    @Disabled
     @Test
     void returnsEmptyListWhenPlayerResponseIsNull() {
 
@@ -251,12 +249,11 @@ class TransferServiceTest {
                 );
 
         List<Transfer> result =
-                transferService.getTransfers();
+                transferService.getTransfers(33);
 
         assertThat(result).isEmpty();
     }
 
-    @Disabled
     @Test
     void ignoresPlayerWithoutTransferList() {
 
@@ -278,7 +275,7 @@ class TransferServiceTest {
                 );
 
         List<Transfer> result =
-                transferService.getTransfers();
+                transferService.getTransfers(33);
 
         assertThat(result).isEmpty();
     }
@@ -311,7 +308,7 @@ class TransferServiceTest {
                 );
 
         List<Transfer> result =
-                transferService.getTransfers();
+                transferService.getTransfers(33);
 
         assertThat(result).isEmpty();
     }
@@ -351,7 +348,7 @@ class TransferServiceTest {
                 );
 
         assertThat(
-                transferService.getTransfers()
+                transferService.getTransfers(33)
         ).isEmpty();
     }
 
@@ -390,7 +387,7 @@ class TransferServiceTest {
                 );
 
         assertThat(
-                transferService.getTransfers()
+                transferService.getTransfers(33)
         ).isEmpty();
     }
 
@@ -433,7 +430,7 @@ class TransferServiceTest {
                 );
 
         List<Transfer> result =
-                transferService.getTransfers();
+                transferService.getTransfers(33);
 
         assertThat(result).hasSize(1);
         assertThat(result.getFirst().toClub())
@@ -476,7 +473,7 @@ class TransferServiceTest {
                 );
 
         List<Transfer> result =
-                transferService.getTransfers();
+                transferService.getTransfers(33);
 
         assertThat(result).hasSize(1);
 
@@ -520,7 +517,7 @@ class TransferServiceTest {
                 );
 
         assertThat(
-                transferService.getTransfers()
+                transferService.getTransfers(33)
         ).isEmpty();
     }
 
@@ -584,7 +581,7 @@ class TransferServiceTest {
                 );
 
         List<Transfer> result =
-                transferService.getTransfers();
+                transferService.getTransfers(33);
 
         assertThat(result)
                 .extracting(Transfer::date)
@@ -592,6 +589,57 @@ class TransferServiceTest {
                         "2026-08-20",
                         "2025-01-01"
                 );
+    }
+
+    @Test
+    void loadsTransfersForRequestedTeam() {
+
+        int arsenalId = 42;
+
+        ApiTransfer apiTransfer =
+                new ApiTransfer(
+                        "2026-08-20",
+                        "€30M",
+                        new ApiTransferTeams(
+                                new ApiTeam(
+                                        arsenalId,
+                                        "Arsenal",
+                                        null
+                                ),
+                                new ApiTeam(
+                                        50,
+                                        "Other Club",
+                                        null
+                                )
+                        )
+                );
+
+        ApiPlayerTransfer playerTransfer =
+                new ApiPlayerTransfer(
+                        new ApiPlayer(
+                                123,
+                                "Test Player"
+                        ),
+                        null,
+                        List.of(apiTransfer)
+                );
+
+        when(apiFootballClient.getTransfers(arsenalId))
+                .thenReturn(
+                        new ApiFootballResponse(
+                                List.of(playerTransfer)
+                        )
+                );
+
+        List<Transfer> result =
+                transferService.getTransfers(arsenalId);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.getFirst().toClub())
+                .isEqualTo("Arsenal");
+
+        verify(apiFootballClient)
+                .getTransfers(arsenalId);
     }
 
 
