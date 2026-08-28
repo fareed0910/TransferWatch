@@ -365,4 +365,82 @@ public class TransferApiTest {
         assertFalse(response.isSuccessful());
         assertEquals(429, response.code());
     }
+
+    @Test
+    public void searchesTeamsUsingQuery()
+            throws Exception {
+
+        String json = """
+            [
+              {
+                "id": 42,
+                "name": "Arsenal",
+                "logo": "https://example.com/arsenal.png"
+              }
+            ]
+            """;
+
+        mockWebServer.enqueue(
+                new MockResponse()
+                        .setResponseCode(200)
+                        .setBody(json)
+                        .addHeader(
+                                "Content-Type",
+                                "application/json"
+                        )
+        );
+
+        Response<List<Team>> response =
+                transferApi
+                        .searchTeams("arsenal")
+                        .execute();
+
+        assertTrue(response.isSuccessful());
+        assertNotNull(response.body());
+        assertEquals(1, response.body().size());
+
+        Team team = response.body().get(0);
+
+        assertEquals(Integer.valueOf(42), team.id());
+        assertEquals("Arsenal", team.name());
+
+        String path =
+                mockWebServer
+                        .takeRequest()
+                        .getPath();
+
+        assertEquals(
+                "/api/teams?query=arsenal",
+                path
+        );
+    }
+
+    @Test
+    public void requestsTransfersForSelectedTeam()
+            throws Exception {
+
+        mockWebServer.enqueue(
+                new MockResponse()
+                        .setResponseCode(200)
+                        .setBody("[]")
+                        .addHeader(
+                                "Content-Type",
+                                "application/json"
+                        )
+        );
+
+        transferApi
+                .getTransfers(42)
+                .execute();
+
+        String path =
+                mockWebServer
+                        .takeRequest()
+                        .getPath();
+
+        assertEquals(
+                "/api/teams/42/transfers",
+                path
+        );
+    }
 }
