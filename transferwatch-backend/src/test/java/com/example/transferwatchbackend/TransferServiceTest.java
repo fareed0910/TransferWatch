@@ -18,17 +18,17 @@ import static org.mockito.Mockito.*;
 
 class TransferServiceTest {
 
-    private ApiFootballClient apiFootballClient;
+    private TransferProvider transferProvider;
     private TransferService transferService;
 
     @BeforeEach
     void setUp() {
 
-        apiFootballClient =
-                mock(ApiFootballClient.class);
+        transferProvider =
+                mock(TransferProvider.class);
 
         transferService =
-                new TransferService(apiFootballClient);
+                new TransferService(transferProvider);
     }
 
     @Test
@@ -74,7 +74,7 @@ class TransferServiceTest {
                 );
 
         when(
-                apiFootballClient.getTransfers(33)
+              transferProvider.getTransfers(33)
         ).thenReturn(apiResponse);
 
 
@@ -145,7 +145,7 @@ class TransferServiceTest {
                 );
 
         when(
-                apiFootballClient.getTransfers(33)
+                transferProvider.getTransfers(33)
         ).thenReturn(apiResponse);
 
 
@@ -210,7 +210,7 @@ class TransferServiceTest {
                 );
 
         when(
-                apiFootballClient.getTransfers(33)
+                transferProvider.getTransfers(33)
         ).thenReturn(
                 new ApiFootballResponse(
                         List.of(playerTransfer)
@@ -229,7 +229,7 @@ class TransferServiceTest {
     @Test
     void returnsEmptyListWhenApiContainsNoPlayers() {
 
-        when(apiFootballClient.getTransfers(33))
+        when(transferProvider.getTransfers(33))
                 .thenReturn(
                         new ApiFootballResponse(List.of())
                 );
@@ -243,7 +243,7 @@ class TransferServiceTest {
     @Test
     void returnsEmptyListWhenPlayerResponseIsNull() {
 
-        when(apiFootballClient.getTransfers(33))
+        when(transferProvider.getTransfers(33))
                 .thenReturn(
                         new ApiFootballResponse(null)
                 );
@@ -267,7 +267,7 @@ class TransferServiceTest {
                         null
                 );
 
-        when(apiFootballClient.getTransfers(33))
+        when(transferProvider.getTransfers(33))
                 .thenReturn(
                         new ApiFootballResponse(
                                 List.of(player)
@@ -300,7 +300,7 @@ class TransferServiceTest {
                         List.of(apiTransfer)
                 );
 
-        when(apiFootballClient.getTransfers(33))
+        when(transferProvider.getTransfers(33))
                 .thenReturn(
                         new ApiFootballResponse(
                                 List.of(player)
@@ -340,7 +340,7 @@ class TransferServiceTest {
                         List.of(apiTransfer)
                 );
 
-        when(apiFootballClient.getTransfers(33))
+        when(transferProvider.getTransfers(33))
                 .thenReturn(
                         new ApiFootballResponse(
                                 List.of(player)
@@ -379,7 +379,7 @@ class TransferServiceTest {
                         List.of(apiTransfer)
                 );
 
-        when(apiFootballClient.getTransfers(33))
+        when(transferProvider.getTransfers(33))
                 .thenReturn(
                         new ApiFootballResponse(
                                 List.of(player)
@@ -422,7 +422,7 @@ class TransferServiceTest {
                         List.of(apiTransfer)
                 );
 
-        when(apiFootballClient.getTransfers(33))
+        when(transferProvider.getTransfers(33))
                 .thenReturn(
                         new ApiFootballResponse(
                                 List.of(player)
@@ -465,7 +465,7 @@ class TransferServiceTest {
                         List.of(apiTransfer)
                 );
 
-        when(apiFootballClient.getTransfers(33))
+        when(transferProvider.getTransfers(33))
                 .thenReturn(
                         new ApiFootballResponse(
                                 List.of(player)
@@ -509,7 +509,7 @@ class TransferServiceTest {
                         List.of(apiTransfer)
                 );
 
-        when(apiFootballClient.getTransfers(33))
+        when(transferProvider.getTransfers(33))
                 .thenReturn(
                         new ApiFootballResponse(
                                 List.of(player)
@@ -573,7 +573,7 @@ class TransferServiceTest {
                         )
                 );
 
-        when(apiFootballClient.getTransfers(33))
+        when(transferProvider.getTransfers(33))
                 .thenReturn(
                         new ApiFootballResponse(
                                 List.of(player)
@@ -624,7 +624,7 @@ class TransferServiceTest {
                         List.of(apiTransfer)
                 );
 
-        when(apiFootballClient.getTransfers(arsenalId))
+        when(transferProvider.getTransfers(arsenalId))
                 .thenReturn(
                         new ApiFootballResponse(
                                 List.of(playerTransfer)
@@ -638,7 +638,7 @@ class TransferServiceTest {
         assertThat(result.getFirst().toClub())
                 .isEqualTo("Arsenal");
 
-        verify(apiFootballClient)
+        verify(transferProvider)
                 .getTransfers(arsenalId);
     }
 

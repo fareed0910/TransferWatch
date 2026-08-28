@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
 @Component
-public class ApiFootballClient {
+public class ApiFootballClient implements TransferProvider{
 
     private final RestClient restClient;
 
@@ -25,9 +25,8 @@ public class ApiFootballClient {
                 .build();
     }
 
-    public ApiFootballResponse getTransfers(
-            int teamId
-    ) {
+    @Override
+    public ApiFootballResponse getTransfers(int teamId) {
 
         return restClient
                 .get()

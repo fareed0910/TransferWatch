@@ -14,13 +14,11 @@ import java.util.Objects;
 @Service
 public class TransferService {
 
-    private final ApiFootballClient apiFootballClient;
+    private final TransferProvider transferProvider;
 
-    public TransferService(
-            ApiFootballClient apiFootballClient
-    ) {
-        this.apiFootballClient =
-                apiFootballClient;
+    public TransferService(TransferProvider transferProvider) {
+        this.transferProvider =
+                transferProvider;
     }
 
     public List<Transfer> getTransfers(int teamId) {
@@ -28,7 +26,7 @@ public class TransferService {
 
 
             ApiFootballResponse response =
-                    apiFootballClient
+                    transferProvider
                             .getTransfers(teamId);
 
             if (response == null || response.response() == null) {
