@@ -6,7 +6,6 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
@@ -16,16 +15,13 @@ import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -38,14 +34,12 @@ public class MainActivity extends AppCompatActivity {
             new ArrayList<>();
 
     private TransferAdapter adapter;
-
-    private RecyclerView recyclerView;
+    private TransferViewModel viewModel;
 
     private View loadingContainer;
     private View errorContainer;
 
     private TextView errorText;
-
     private Button retryButton;
 
     private SwipeRefreshLayout swipeRefreshLayout;
@@ -55,16 +49,17 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 
         EdgeToEdge.enable(this);
-
         setContentView(R.layout.activity_main);
 
-        recyclerView =
+        RecyclerView recyclerView =
                 findViewById(
                         R.id.transferRecyclerView
                 );
 
         swipeRefreshLayout =
-                findViewById(R.id.swipeRefreshLayout);
+                findViewById(
+                        R.id.swipeRefreshLayout
+                );
 
         loadingContainer =
                 findViewById(
@@ -86,7 +81,6 @@ public class MainActivity extends AppCompatActivity {
                         R.id.retryButton
                 );
 
-
         recyclerView.setLayoutManager(
                 new LinearLayoutManager(this)
         );
@@ -95,23 +89,39 @@ public class MainActivity extends AppCompatActivity {
                 new TransferAdapter(transfers);
 
         recyclerView.setAdapter(adapter);
-        swipeRefreshLayout.setOnRefreshListener(
-                this::loadTransfers
+
+        FootballRepository repository =
+                new NetworkFootballRepository(
+                        ApiClient.getTransferApi()
+                );
+
+        viewModel =
+                new ViewModelProvider(
+                        this,
+                        new TransferViewModelFactory(
+                                repository
+                        )
+                ).get(TransferViewModel.class);
+
+        viewModel.state().observe(
+                this,
+                this::render
         );
 
+        swipeRefreshLayout.setOnRefreshListener(
+                this::loadTransfersWithPermissionCheck
+        );
 
         retryButton.setOnClickListener(
                 view ->
                         loadTransfersWithPermissionCheck()
         );
 
-
-        loadTransfersWithPermissionCheck();
-
+        loadInitialTransfersWithPermissionCheck();
 
         ViewCompat.setOnApplyWindowInsetsListener(
                 findViewById(R.id.main),
-                (v, insets) -> {
+                (view, insets) -> {
 
                     Insets systemBars =
                             insets.getInsets(
@@ -120,7 +130,7 @@ public class MainActivity extends AppCompatActivity {
                                             .systemBars()
                             );
 
-                    v.setPadding(
+                    view.setPadding(
                             systemBars.left,
                             systemBars.top,
                             systemBars.right,
@@ -132,8 +142,22 @@ public class MainActivity extends AppCompatActivity {
         );
     }
 
+    private void loadInitialTransfersWithPermissionCheck() {
+
+        if (!requestLocalNetworkPermissionIfNeeded()) {
+            viewModel.loadInitialTransfers();
+        }
+    }
+
     private void loadTransfersWithPermissionCheck() {
-        // Android 17 / API 37 local-network permission
+
+        if (!requestLocalNetworkPermissionIfNeeded()) {
+            viewModel.loadTransfers();
+        }
+    }
+
+    private boolean requestLocalNetworkPermissionIfNeeded() {
+
         if (Build.VERSION.SDK_INT >= 37
                 && ContextCompat.checkSelfPermission(
                 this,
@@ -142,120 +166,79 @@ public class MainActivity extends AppCompatActivity {
 
             ActivityCompat.requestPermissions(
                     this,
-                    new String[]{LOCAL_NETWORK_PERMISSION},
+                    new String[]{
+                            LOCAL_NETWORK_PERMISSION
+                    },
                     LOCAL_NETWORK_PERMISSION_REQUEST
             );
 
-        } else {
+            return true;
+        }
 
-            loadTransfers();
+        return false;
+    }
+
+    private void render(
+            TransferScreenState state
+    ) {
+        swipeRefreshLayout.setRefreshing(false);
+
+        switch (state.status()) {
+
+            case IDLE -> {
+                // Waiting for the initial load or permission.
+            }
+
+            case LOADING -> {
+                if (state.transfers().isEmpty()) {
+                    showLoading();
+                } else {
+                    showContent();
+                    swipeRefreshLayout.setRefreshing(true);
+                }
+            }
+
+            case CONTENT -> {
+                transfers.clear();
+                transfers.addAll(state.transfers());
+
+                adapter.notifyDataSetChanged();
+
+                showContent();
+            }
+
+            case EMPTY -> showError(
+                    "No transfers are currently available."
+            );
+
+            case ERROR -> showError(
+                    state.errorMessage()
+            );
         }
     }
 
     private void showLoading() {
 
         loadingContainer.setVisibility(View.VISIBLE);
-
         errorContainer.setVisibility(View.GONE);
-
         swipeRefreshLayout.setVisibility(View.GONE);
     }
 
     private void showContent() {
 
         loadingContainer.setVisibility(View.GONE);
-
         errorContainer.setVisibility(View.GONE);
-
         swipeRefreshLayout.setVisibility(View.VISIBLE);
     }
 
     private void showError(String message) {
 
         loadingContainer.setVisibility(View.GONE);
-
         swipeRefreshLayout.setVisibility(View.GONE);
-
         errorContainer.setVisibility(View.VISIBLE);
 
         errorText.setText(message);
     }
-
-    private void loadTransfers() {
-
-        if (transfers.isEmpty()) {
-            showLoading();
-        }
-
-        TransferApi transferApi =
-                ApiClient.getTransferApi();
-
-        Call<List<Transfer>> call =
-                transferApi.getTransfers();
-
-        call.enqueue(new Callback<List<Transfer>>() {
-
-            @Override
-            public void onResponse(
-                    Call<List<Transfer>> call,
-                    Response<List<Transfer>> response
-            ) {
-
-
-
-                if (response.isSuccessful()
-                        && response.body() != null) {
-
-                    if (response.body().isEmpty()) {
-
-                        showError(
-                                "No transfers are currently available."
-                        );
-
-                        return;
-                    }
-
-                    transfers.clear();
-
-                    transfers.addAll(
-                            response.body()
-                    );
-
-                    adapter.notifyDataSetChanged();
-
-                    swipeRefreshLayout.setRefreshing(false);
-
-                    showContent();
-
-                } else {
-
-                    swipeRefreshLayout.setRefreshing(false);
-
-                    showError(
-                            "Server error: "
-                                    + response.code()
-                    );
-                }
-            }
-
-            @Override
-            public void onFailure(
-                    Call<List<Transfer>> call,
-                    Throwable throwable
-            ) {
-                swipeRefreshLayout.setRefreshing(false);
-
-                showError(
-                        "Could not load transfers.\n\n"
-                                + throwable.getClass()
-                                .getSimpleName()
-                );
-
-                throwable.printStackTrace();
-            }
-        });
-    }
-
 
     @Override
     public void onRequestPermissionsResult(
@@ -270,21 +253,22 @@ public class MainActivity extends AppCompatActivity {
         );
 
         if (requestCode
-                == LOCAL_NETWORK_PERMISSION_REQUEST) {
+                != LOCAL_NETWORK_PERMISSION_REQUEST) {
+            return;
+        }
 
-            if (grantResults.length > 0
-                    && grantResults[0]
-                    == PackageManager.PERMISSION_GRANTED) {
+        if (grantResults.length > 0
+                && grantResults[0]
+                == PackageManager.PERMISSION_GRANTED) {
 
-                loadTransfers();
+            viewModel.loadTransfers();
 
-            } else {
+        } else {
 
-                showError(
-                        "Local network access is required "
-                                + "to connect to the development server."
-                );
-            }
+            showError(
+                    "Local network access is required "
+                            + "to connect to the development server."
+            );
         }
     }
 }
