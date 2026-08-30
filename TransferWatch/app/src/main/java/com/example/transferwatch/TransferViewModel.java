@@ -7,7 +7,6 @@ import androidx.lifecycle.ViewModel;
 import java.util.List;
 
 public class TransferViewModel extends ViewModel {
-    private static final int DEFAULT_TEAM_ID = 33;
 
     private final FootballRepository repository;
 
@@ -15,6 +14,9 @@ public class TransferViewModel extends ViewModel {
             new MutableLiveData<>(
                     TransferScreenState.idle()
             );
+
+    private final MutableLiveData<Team> selectedTeam =
+            new MutableLiveData<>();
 
     public TransferViewModel(
             FootballRepository repository
@@ -26,19 +28,40 @@ public class TransferViewModel extends ViewModel {
         return state;
     }
 
-    public void loadInitialTransfers() {
+    public LiveData<Team> selectedTeam() {
+        return selectedTeam;
+    }
 
-        TransferScreenState current = state.getValue();
-
-        if (current == null
-                || current.status()
-                == TransferScreenState.Status.IDLE) {
-            loadTransfers();
+    public void loadInitialTransfers(
+            Team defaultTeam
+    ) {
+        if (selectedTeam.getValue() == null) {
+            selectTeam(defaultTeam);
         }
     }
 
-    public void loadTransfers() {
+    public void selectTeam(Team team) {
 
+        if (team == null || team.id() == null) {
+            return;
+        }
+
+        selectedTeam.setValue(team);
+        loadTransfers(team.id());
+    }
+
+    public void refresh() {
+
+        Team team = selectedTeam.getValue();
+
+        if (team != null && team.id() != null) {
+            loadTransfers(team.id());
+        }
+    }
+
+    private void loadTransfers(
+            int teamId
+    ) {
         TransferScreenState current = state.getValue();
 
         List<Transfer> existingTransfers =
@@ -55,7 +78,7 @@ public class TransferViewModel extends ViewModel {
         );
 
         repository.getTransfers(
-                DEFAULT_TEAM_ID,
+                teamId,
                 new RepositoryCallback<>() {
 
                     @Override

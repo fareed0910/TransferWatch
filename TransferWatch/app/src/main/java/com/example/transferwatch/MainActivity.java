@@ -24,7 +24,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
-
+    private static final Team DEFAULT_TEAM =
+            new Team(
+                    33,
+                    "Manchester United",
+                    null
+            );
     private static final int LOCAL_NETWORK_PERMISSION_REQUEST = 100;
 
     private static final String LOCAL_NETWORK_PERMISSION =
@@ -32,6 +37,7 @@ public class MainActivity extends AppCompatActivity {
 
     private final List<Transfer> transfers =
             new ArrayList<>();
+
 
     private TransferAdapter adapter;
     private TransferViewModel viewModel;
@@ -43,6 +49,10 @@ public class MainActivity extends AppCompatActivity {
     private Button retryButton;
 
     private SwipeRefreshLayout swipeRefreshLayout;
+
+    private Runnable pendingPermissionAction;
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -109,15 +119,22 @@ public class MainActivity extends AppCompatActivity {
         );
 
         swipeRefreshLayout.setOnRefreshListener(
-                this::loadTransfersWithPermissionCheck
+                () -> runWithPermission(
+                        viewModel::refresh
+                )
         );
 
         retryButton.setOnClickListener(
-                view ->
-                        loadTransfersWithPermissionCheck()
-        );
+                view -> runWithPermission(
+                        viewModel::refresh
+                )
+        );;
 
-        loadInitialTransfersWithPermissionCheck();
+        runWithPermission(
+                () -> viewModel.loadInitialTransfers(
+                        DEFAULT_TEAM
+                )
+        );
 
         ViewCompat.setOnApplyWindowInsetsListener(
                 findViewById(R.id.main),
@@ -142,19 +159,17 @@ public class MainActivity extends AppCompatActivity {
         );
     }
 
-    private void loadInitialTransfersWithPermissionCheck() {
 
-        if (!requestLocalNetworkPermissionIfNeeded()) {
-            viewModel.loadInitialTransfers();
+    private void runWithPermission(
+            Runnable action
+    ) {
+        if (requestLocalNetworkPermissionIfNeeded()) {
+            pendingPermissionAction = action;
+        } else {
+            action.run();
         }
     }
 
-    private void loadTransfersWithPermissionCheck() {
-
-        if (!requestLocalNetworkPermissionIfNeeded()) {
-            viewModel.loadTransfers();
-        }
-    }
 
     private boolean requestLocalNetworkPermissionIfNeeded() {
 
@@ -261,8 +276,10 @@ public class MainActivity extends AppCompatActivity {
                 && grantResults[0]
                 == PackageManager.PERMISSION_GRANTED) {
 
-            viewModel.loadTransfers();
-
+            if (pendingPermissionAction != null) {
+                pendingPermissionAction.run();
+                pendingPermissionAction = null;
+            }
         } else {
 
             showError(

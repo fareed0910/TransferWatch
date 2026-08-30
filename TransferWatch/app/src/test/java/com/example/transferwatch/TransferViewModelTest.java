@@ -2,6 +2,7 @@ package com.example.transferwatch;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
@@ -69,7 +70,14 @@ public class TransferViewModelTest {
         TransferViewModel viewModel =
                 new TransferViewModel(repository);
 
-        viewModel.loadTransfers();
+        Team arsenal =
+                new Team(
+                        42,
+                        "Arsenal",
+                        null
+                );
+
+        viewModel.selectTeam(arsenal);
 
         TransferScreenState state =
                 viewModel.state().getValue();
@@ -83,7 +91,7 @@ public class TransferViewModelTest {
                 List.of(expected),
                 state.transfers()
         );
-        assertEquals(33, repository.requestedTeamId);
+        assertEquals(42, repository.requestedTeamId);
     }
 
     @Test
@@ -97,7 +105,14 @@ public class TransferViewModelTest {
         TransferViewModel viewModel =
                 new TransferViewModel(repository);
 
-        viewModel.loadTransfers();
+        Team arsenal =
+                new Team(
+                        42,
+                        "Arsenal",
+                        null
+                );
+
+        viewModel.selectTeam(arsenal);
 
         assertEquals(
                 TransferScreenState.Status.EMPTY,
@@ -117,7 +132,14 @@ public class TransferViewModelTest {
         TransferViewModel viewModel =
                 new TransferViewModel(repository);
 
-        viewModel.loadTransfers();
+        Team arsenal =
+                new Team(
+                        42,
+                        "Arsenal",
+                        null
+                );
+
+        viewModel.selectTeam(arsenal);
 
         TransferScreenState state =
                 viewModel.state().getValue();
@@ -130,6 +152,62 @@ public class TransferViewModelTest {
         assertTrue(
                 state.errorMessage()
                         .contains("IOException")
+        );
+    }
+
+    @Test
+    public void refreshUsesSelectedTeam() {
+
+        FakeFootballRepository repository =
+                new FakeFootballRepository();
+
+        repository.transfers = List.of();
+
+        TransferViewModel viewModel =
+                new TransferViewModel(repository);
+
+        viewModel.selectTeam(
+                new Team(
+                        42,
+                        "Arsenal",
+                        null
+                )
+        );
+
+        repository.requestedTeamId = 0;
+
+        viewModel.refresh();
+
+        assertEquals(
+                42,
+                repository.requestedTeamId
+        );
+    }
+
+    @Test
+    public void teamWithoutIdIsIgnored() {
+
+        FakeFootballRepository repository =
+                new FakeFootballRepository();
+
+        TransferViewModel viewModel =
+                new TransferViewModel(repository);
+
+        viewModel.selectTeam(
+                new Team(
+                        null,
+                        "Unknown",
+                        null
+                )
+        );
+
+        assertEquals(
+                0,
+                repository.requestedTeamId
+        );
+
+        assertNull(
+                viewModel.selectedTeam().getValue()
         );
     }
 }
