@@ -32,13 +32,6 @@ public class TransferViewModel extends ViewModel {
         return selectedTeam;
     }
 
-    public void loadInitialTransfers(
-            Team defaultTeam
-    ) {
-        if (selectedTeam.getValue() == null) {
-            selectTeam(defaultTeam);
-        }
-    }
 
     public void selectTeam(Team team) {
 

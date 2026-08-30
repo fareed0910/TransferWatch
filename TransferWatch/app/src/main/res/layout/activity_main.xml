@@ -5,119 +5,192 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="#F5F5F5">
+    android:background="#F5F5F5"
+    android:orientation="vertical">
 
-    <!-- Header -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:paddingStart="20dp"
-        android:paddingEnd="20dp"
-        android:paddingTop="16dp"
-        android:paddingBottom="24dp">
+        android:padding="20dp">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="TransferWatch"
+            android:textColor="#111111"
             android:textSize="30sp"
-            android:textStyle="bold"
-            android:textColor="#111111" />
+            android:textStyle="bold" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Latest football transfers"
-            android:textSize="16sp"
+            android:layout_marginTop="4dp"
+            android:text="Find transfers for any football team"
             android:textColor="#666666"
-            android:layout_marginTop="4dp" />
+            android:textSize="16sp" />
 
     </LinearLayout>
 
-
-    <!-- Content area -->
-    <FrameLayout
+    <LinearLayout
+        android:id="@+id/searchScreen"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp">
 
-        <!-- Transfer list -->
-        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-            android:id="@+id/swipeRefreshLayout"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/transferRecyclerView"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:paddingStart="20dp"
-                android:paddingEnd="20dp"
-                android:clipToPadding="false" />
-
-        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
-
-
-        <!-- Loading state -->
         <LinearLayout
-            android:id="@+id/loadingContainer"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical"
-            android:gravity="center">
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
 
-            <ProgressBar
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
-
-            <TextView
-                android:layout_width="wrap_content"
+            <EditText
+                android:id="@+id/teamSearchInput"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="Loading transfers..."
-                android:textSize="16sp"
-                android:textColor="#666666"
-                android:layout_marginTop="12dp" />
-
-        </LinearLayout>
-
-
-        <!-- Error state -->
-        <LinearLayout
-            android:id="@+id/errorContainer"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:padding="32dp"
-            android:visibility="gone">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="⚠"
-                android:textSize="40sp" />
-
-            <TextView
-                android:id="@+id/errorText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Could not load transfers."
-                android:textSize="18sp"
-                android:textColor="#333333"
-                android:gravity="center"
-                android:layout_marginTop="12dp" />
+                android:layout_weight="1"
+                android:hint="Search for a team"
+                android:imeOptions="actionSearch"
+                android:inputType="text"
+                android:maxLines="1" />
 
             <Button
-                android:id="@+id/retryButton"
+                android:id="@+id/teamSearchButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Retry"
-                android:layout_marginTop="20dp" />
+                android:layout_marginStart="8dp"
+                android:text="Search" />
 
         </LinearLayout>
 
-    </FrameLayout>
+        <ProgressBar
+            android:id="@+id/teamSearchProgress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="24dp"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/teamSearchMessage"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:gravity="center"
+            android:text="Enter at least 3 characters"
+            android:textColor="#666666"
+            android:textSize="16sp" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/teamRecyclerView"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="16dp"
+            android:layout_weight="1"
+            android:clipToPadding="false"
+            android:visibility="gone" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/transferScreen"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <Button
+            android:id="@+id/backToSearchButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:text="← Search again" />
+
+        <TextView
+            android:id="@+id/selectedTeamText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
+            android:paddingBottom="12dp"
+            android:textColor="#111111"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+
+            <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+                android:id="@+id/swipeRefreshLayout"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:visibility="gone">
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/transferRecyclerView"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:clipToPadding="false"
+                    android:paddingStart="20dp"
+                    android:paddingEnd="20dp" />
+
+            </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+            <LinearLayout
+                android:id="@+id/loadingContainer"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <ProgressBar
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="Loading transfers..."
+                    android:textColor="#666666"
+                    android:textSize="16sp" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/errorContainer"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:padding="32dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/errorText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:textColor="#333333"
+                    android:textSize="18sp" />
+
+                <Button
+                    android:id="@+id/retryButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    android:text="Retry" />
+
+            </LinearLayout>
+
+        </FrameLayout>
+
+    </LinearLayout>
 
 </LinearLayout>

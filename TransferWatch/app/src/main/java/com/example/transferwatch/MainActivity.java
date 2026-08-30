@@ -24,12 +24,20 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
-    private static final Team DEFAULT_TEAM =
-            new Team(
-                    33,
-                    "Manchester United",
-                    null
-            );
+    private final List<Team> teams = new ArrayList<>();
+
+    private TeamAdapter teamAdapter;
+    private TeamSearchViewModel teamSearchViewModel;
+
+    private View searchScreen;
+    private View transferScreen;
+    private View teamSearchProgress;
+
+    private TextView teamSearchMessage;
+    private TextView selectedTeamText;
+
+    private android.widget.EditText teamSearchInput;
+    private RecyclerView teamRecyclerView;
     private static final int LOCAL_NETWORK_PERMISSION_REQUEST = 100;
 
     private static final String LOCAL_NETWORK_PERMISSION =
@@ -61,98 +69,95 @@ public class MainActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
 
-        RecyclerView recyclerView =
-                findViewById(
-                        R.id.transferRecyclerView
-                );
+        searchScreen = findViewById(R.id.searchScreen);
 
-        swipeRefreshLayout =
-                findViewById(
-                        R.id.swipeRefreshLayout
-                );
+        transferScreen = findViewById(R.id.transferScreen);
 
-        loadingContainer =
-                findViewById(
-                        R.id.loadingContainer
-                );
+        teamSearchInput = findViewById(R.id.teamSearchInput);
 
-        errorContainer =
-                findViewById(
-                        R.id.errorContainer
-                );
+        Button teamSearchButton = findViewById(R.id.teamSearchButton);
 
-        errorText =
-                findViewById(
-                        R.id.errorText
-                );
+        teamSearchProgress = findViewById(R.id.teamSearchProgress);
 
-        retryButton =
-                findViewById(
-                        R.id.retryButton
-                );
+        teamSearchMessage = findViewById(R.id.teamSearchMessage);
 
-        recyclerView.setLayoutManager(
-                new LinearLayoutManager(this)
-        );
+        teamRecyclerView = findViewById(R.id.teamRecyclerView);
 
-        adapter =
-                new TransferAdapter(transfers);
+        teamAdapter = new TeamAdapter(teams, this::selectTeam);
+
+        teamRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+
+        teamRecyclerView.setAdapter(teamAdapter);
+
+        selectedTeamText = findViewById(R.id.selectedTeamText);
+
+        Button backToSearchButton = findViewById(R.id.backToSearchButton);
+
+        RecyclerView recyclerView = findViewById(R.id.transferRecyclerView);
+
+        swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout);
+
+        loadingContainer = findViewById(R.id.loadingContainer);
+
+        errorContainer = findViewById(R.id.errorContainer);
+
+        errorText = findViewById(R.id.errorText);
+
+        retryButton = findViewById(R.id.retryButton);
+
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+
+        adapter = new TransferAdapter(transfers);
 
         recyclerView.setAdapter(adapter);
 
-        FootballRepository repository =
-                new NetworkFootballRepository(
-                        ApiClient.getTransferApi()
-                );
+        FootballRepository repository = new NetworkFootballRepository(ApiClient.getTransferApi());
 
-        viewModel =
-                new ViewModelProvider(
-                        this,
-                        new TransferViewModelFactory(
-                                repository
-                        )
-                ).get(TransferViewModel.class);
+        teamSearchViewModel = new ViewModelProvider(this, new TeamSearchViewModelFactory(repository)).get(TeamSearchViewModel.class);
 
-        viewModel.state().observe(
+        viewModel = new ViewModelProvider(this, new TransferViewModelFactory(repository)).get(TransferViewModel.class);
+
+        viewModel.state().observe(this, this::render);
+
+        teamSearchViewModel.state().observe(this, this::renderTeamSearch);
+
+        viewModel.selectedTeam().observe(
                 this,
-                this::render
+                team -> {
+                    if (team != null) {
+                        showTransferScreen(team);
+                    }
+                }
         );
 
-        swipeRefreshLayout.setOnRefreshListener(
-                () -> runWithPermission(
-                        viewModel::refresh
-                )
+
+        swipeRefreshLayout.setOnRefreshListener(() -> runWithPermission(viewModel::refresh));
+
+        retryButton.setOnClickListener(view -> runWithPermission(viewModel::refresh));
+
+        teamSearchButton.setOnClickListener(
+                view -> searchForTeam()
         );
 
-        retryButton.setOnClickListener(
-                view -> runWithPermission(
-                        viewModel::refresh
-                )
-        );;
-
-        runWithPermission(
-                () -> viewModel.loadInitialTransfers(
-                        DEFAULT_TEAM
-                )
+        teamSearchInput.setOnEditorActionListener(
+                (view, actionId, event) -> {
+                    searchForTeam();
+                    return true;
+                }
         );
 
-        ViewCompat.setOnApplyWindowInsetsListener(
-                findViewById(R.id.main),
-                (view, insets) -> {
+        backToSearchButton.setOnClickListener(
+                view -> {
+                    transferScreen.setVisibility(View.GONE);
+                    searchScreen.setVisibility(View.VISIBLE);
+                }
+        );
 
-                    Insets systemBars =
-                            insets.getInsets(
-                                    WindowInsetsCompat
-                                            .Type
-                                            .systemBars()
-                            );
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (view, insets) -> {
 
-                    view.setPadding(
-                            systemBars.left,
-                            systemBars.top,
-                            systemBars.right,
-                            systemBars.bottom
-                    );
+                    Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+
+                    view.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
 
                     return insets;
                 }
@@ -160,9 +165,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    private void runWithPermission(
-            Runnable action
-    ) {
+    private void runWithPermission(Runnable action) {
         if (requestLocalNetworkPermissionIfNeeded()) {
             pendingPermissionAction = action;
         } else {
@@ -173,33 +176,16 @@ public class MainActivity extends AppCompatActivity {
 
     private boolean requestLocalNetworkPermissionIfNeeded() {
 
-        if (Build.VERSION.SDK_INT >= 37
-                && ContextCompat.checkSelfPermission(
-                this,
-                LOCAL_NETWORK_PERMISSION
-        ) != PackageManager.PERMISSION_GRANTED) {
-
-            ActivityCompat.requestPermissions(
-                    this,
-                    new String[]{
-                            LOCAL_NETWORK_PERMISSION
-                    },
-                    LOCAL_NETWORK_PERMISSION_REQUEST
-            );
-
+        if (Build.VERSION.SDK_INT >= 37 && ContextCompat.checkSelfPermission(this, LOCAL_NETWORK_PERMISSION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{LOCAL_NETWORK_PERMISSION}, LOCAL_NETWORK_PERMISSION_REQUEST);
             return true;
         }
-
         return false;
     }
 
-    private void render(
-            TransferScreenState state
-    ) {
+    private void render(TransferScreenState state) {
         swipeRefreshLayout.setRefreshing(false);
-
         switch (state.status()) {
-
             case IDLE -> {
                 // Waiting for the initial load or permission.
             }
@@ -216,9 +202,7 @@ public class MainActivity extends AppCompatActivity {
             case CONTENT -> {
                 transfers.clear();
                 transfers.addAll(state.transfers());
-
                 adapter.notifyDataSetChanged();
-
                 showContent();
             }
 
@@ -256,36 +240,94 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    public void onRequestPermissionsResult(
-            int requestCode,
-            @NonNull String[] permissions,
-            @NonNull int[] grantResults
-    ) {
-        super.onRequestPermissionsResult(
-                requestCode,
-                permissions,
-                grantResults
-        );
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
-        if (requestCode
-                != LOCAL_NETWORK_PERMISSION_REQUEST) {
+        if (requestCode != LOCAL_NETWORK_PERMISSION_REQUEST) {
             return;
         }
 
-        if (grantResults.length > 0
-                && grantResults[0]
-                == PackageManager.PERMISSION_GRANTED) {
+        if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
 
             if (pendingPermissionAction != null) {
                 pendingPermissionAction.run();
                 pendingPermissionAction = null;
             }
         } else {
+            showError("Local network access is required " + "to connect to the development server.");
+        }
+    }
 
-            showError(
-                    "Local network access is required "
-                            + "to connect to the development server."
-            );
+    private void searchForTeam() {
+
+        String query = teamSearchInput.getText().toString();
+
+        runWithPermission(
+                () -> teamSearchViewModel.search(query)
+        );
+    }
+
+    private void selectTeam(Team team) {
+
+        runWithPermission(
+                () -> viewModel.selectTeam(team)
+        );
+    }
+
+    private void showTransferScreen(Team team) {
+        searchScreen.setVisibility(View.GONE);
+        transferScreen.setVisibility(View.VISIBLE);
+
+        selectedTeamText.setText(team.name() + " transfers");
+    }
+
+    private void renderTeamSearch(TeamSearchState state) {
+        teamSearchProgress.setVisibility(View.GONE);
+        teamRecyclerView.setVisibility(View.GONE);
+        teamSearchMessage.setVisibility(View.GONE);
+
+        switch (state.status()) {
+
+            case IDLE -> {
+                teamSearchMessage.setText(
+                        "Enter at least 3 characters"
+                );
+                teamSearchMessage.setVisibility(View.VISIBLE);
+            }
+
+            case LOADING ->
+                    teamSearchProgress.setVisibility(
+                            View.VISIBLE
+                    );
+
+            case RESULTS -> {
+                teams.clear();
+                teams.addAll(state.teams());
+
+                teamAdapter.notifyDataSetChanged();
+
+                teamRecyclerView.setVisibility(
+                        View.VISIBLE
+                );
+            }
+
+            case EMPTY -> {
+                teamSearchMessage.setText(
+                        "No teams found."
+                );
+                teamSearchMessage.setVisibility(
+                        View.VISIBLE
+                );
+            }
+
+            case ERROR -> {
+                teamSearchMessage.setText(
+                        state.errorMessage()
+                );
+                teamSearchMessage.setVisibility(
+                        View.VISIBLE
+                );
+            }
         }
     }
 }
