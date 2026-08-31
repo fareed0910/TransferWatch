@@ -17,49 +17,31 @@ public class TransferService {
     private final TransferProvider transferProvider;
 
     public TransferService(TransferProvider transferProvider) {
-        this.transferProvider =
-                transferProvider;
+        this.transferProvider = transferProvider;
     }
 
     public List<Transfer> getTransfers(int teamId) {
         {
 
-
-            ApiFootballResponse response =
-                    transferProvider
-                            .getTransfers(teamId);
+            ApiFootballResponse response = transferProvider.getTransfers(teamId);
 
             if (response == null || response.response() == null) {
                 return List.of();
             }
 
-            System.out.println(
-                    "Players returned by API: " + response.response().size()
-            );
+            List<Transfer> transfers = new ArrayList<>();
 
-
-            List<Transfer> transfers =
-                    new ArrayList<>();
-
-            for (ApiPlayerTransfer playerEntry
-                    : response.response()) {
-                if (playerEntry == null
-                        || playerEntry.transfers() == null) {
+            for (ApiPlayerTransfer playerEntry : response.response()) {
+                if (playerEntry == null || playerEntry.transfers() == null) {
                     continue;
                 }
-                for (ApiTransfer apiTransfer
-                        : playerEntry.transfers()) {
-
-                    if (apiTransfer.teams() == null
-                            || apiTransfer.teams().in() == null
-                            || apiTransfer.teams().out() == null) {
+                for (ApiTransfer apiTransfer : playerEntry.transfers()) {
+                    if (apiTransfer.teams() == null || apiTransfer.teams().in() == null || apiTransfer.teams().out() == null) {
                         continue;
                     }
-
-
                     /*
                      * Defensive check:
-                     * only keep transfers actually involving
+                     * only keep transfers actually involving selected Team
                      */
                     if (!Objects.equals(
                             apiTransfer.teams().in().id(),
@@ -72,6 +54,8 @@ public class TransferService {
 
                         continue;
                     }
+
+
                     Transfer transfer =
                             new Transfer(
                                     playerEntry.player().name(),
@@ -90,7 +74,6 @@ public class TransferService {
                             Transfer::date
                     ).reversed()
             );
-            System.out.println("Transfers after Mapping: " + transfers.size());
             return transfers;
         }
     }
