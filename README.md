@@ -298,7 +298,7 @@ The following scenarios were verified on an Android emulator:
 
 ## Extensibility
 
-Future functionality can be introduced through separate feature packages and interfaces.
+- Future functionality can be introduced through separate feature packages and interfaces.
 
 For example, player-value prediction could define:
 
@@ -318,3 +318,4 @@ A statistics provider could retrieve player data from another API without modify
 - A local backend is required while using the Android app.
 - The app does not currently paginate large result sets.
 - Rapid consecutive searches may allow an older response to arrive after a newer response.
+- API-Football may return multiple near-identical transfer records for the same player, clubs, and transfer type with slightly different dates. TransferWatch currently displays each upstream record rather than removing potentially legitimate data. A future improvement could introduce deduplication after defining and testing a reliable transfer-identity rule.
