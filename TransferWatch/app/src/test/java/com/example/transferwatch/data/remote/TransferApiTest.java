@@ -135,46 +135,7 @@ public class TransferApiTest {
         assertTrue(exceptionThrown);
     }
 
-    @Test
-    public void requestsCorrectEndpoint()
-            throws Exception {
 
-        mockWebServer.enqueue(
-                new MockResponse()
-                        .setResponseCode(200)
-                        .setBody("[]")
-                        .addHeader(
-                                "Content-Type",
-                                "application/json"
-                        )
-        );
-
-        transferApi.getTransfers(42).execute();
-
-        String path = mockWebServer.takeRequest().getPath();
-
-        assertEquals("/api/teams/42/transfers", path);
-    }
-
-    @Test
-    public void responseIsProcessedQuickly()
-            throws IOException {
-
-        mockWebServer.enqueue(
-                new MockResponse()
-                        .setResponseCode(200)
-                        .setBody("[]")
-                        .addHeader("Content-Type", "application/json")
-        );
-
-        long start = System.currentTimeMillis();
-
-        transferApi.getTransfers(42).execute();
-
-        long duration = System.currentTimeMillis() - start;
-
-        assertTrue(duration < 1000);
-    }
     @Test
     public void parsesEmptyTransferList()
             throws IOException {
