@@ -9,6 +9,7 @@ import com.example.transferwatchbackend.transfer.TransferProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 
@@ -17,18 +18,26 @@ public class ApiFootballClient implements TransferProvider, TeamProvider {
 
     private final RestClient restClient;
 
+    @Autowired
     public ApiFootballClient(
             @Value("${api.football.base-url}") String baseUrl,
             @Value("${api.football.key}") String apiKey
     ) {
+        this(
+                RestClient.builder()
+                        .baseUrl(baseUrl)
+                        .defaultHeader(
+                                "x-apisports-key",
+                                apiKey
+                        )
+                        .build()
+        );
+    }
 
-        this.restClient = RestClient.builder()
-                .baseUrl(baseUrl)
-                .defaultHeader(
-                        "x-apisports-key",
-                        apiKey
-                )
-                .build();
+    ApiFootballClient(
+            RestClient restClient
+    ) {
+        this.restClient = restClient;
     }
 
     @Override
